@@ -1,8 +1,1 @@
-data/raw/
-images/
-results/
-__pycache__/
-*.pyc
-*.pyo
 .venv/
-.ipynb_checkpoints/
