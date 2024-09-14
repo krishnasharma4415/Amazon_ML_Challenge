@@ -38,7 +38,6 @@ def parse_string(s):
             unit, s, constants.allowed_units))
     return number, unit
 
-
 def create_placeholder_image(image_save_path):
     try:
         placeholder_image = Image.new('RGB', (100, 100), color='black')
@@ -53,17 +52,21 @@ def download_image(image_link, save_folder, retries=3, delay=3):
     filename = Path(image_link).name
     image_save_path = os.path.join(save_folder, filename)
 
-    if os.path.exists(image_save_path):
-        return
+    # Skip downloading if the image already exists
+    if os.path.exists(image_save_path) and os.path.getsize(image_save_path) > 0:
+        return  # Skip already downloaded images
 
+    # Try to download the image, retrying if necessary
     for _ in range(retries):
         try:
             urllib.request.urlretrieve(image_link, image_save_path)
-            return
-        except:
+            if os.path.getsize(image_save_path) > 0:  # If the file is valid (non-zero size), return
+                return
+        except Exception as e:
             time.sleep(delay)
-    
-    create_placeholder_image(image_save_path) #Create a black placeholder image for invalid links/images
+
+    # If the image couldn't be downloaded after retries, create a placeholder
+    create_placeholder_image(image_save_path)
 
 def download_images(image_links, download_folder, allow_multiprocessing=True):
     if not os.path.exists(download_folder):
@@ -73,11 +76,10 @@ def download_images(image_links, download_folder, allow_multiprocessing=True):
         download_image_partial = partial(
             download_image, save_folder=download_folder, retries=3, delay=3)
 
-        with multiprocessing.Pool(64) as pool:
+        with multiprocessing.Pool(8) as pool:
             list(tqdm(pool.imap(download_image_partial, image_links), total=len(image_links)))
             pool.close()
             pool.join()
     else:
         for image_link in tqdm(image_links, total=len(image_links)):
             download_image(image_link, save_folder=download_folder, retries=3, delay=3)
-        
